@@ -27,7 +27,7 @@ void Application::print_address_claim_table() {
     printf("ID \t\t NAME\n", "ADDRCLM");
 
     for (const auto& [key, value] : address_claim_table) {
-        printf(key, "ADDRCLM");
+        printf((int)key, "ADDRCLM");
         printf(" \t\t ", "ADDRCLM");
         printf(value, "ADDRCLM");
         std::cout << std::endl;
@@ -131,6 +131,7 @@ void Application::addr_claim_response() {
     using namespace std::chrono;
     auto start = steady_clock::now();
     while(duration_cast<milliseconds>(steady_clock::now() - start).count() < 5000) {
+        
     }
     printf("End of operation\n", "CAN");
 }
