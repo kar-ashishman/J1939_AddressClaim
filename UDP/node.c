@@ -4,7 +4,7 @@
 #include "node_defs.h"
 #include "node_public.h"
 
-int node_revc(node_t *node) {
+int node_recv(node_t *node) {
     struct sockaddr_in from;
     int fromlen = sizeof(from);
     int rc = recvfrom(node->sock, node->rcv_buffer, BUFFLEN - 1, 0, (struct sockaddr*)&from, &fromlen);
@@ -81,4 +81,35 @@ int node_init(node_t *node) {
         }
     }
     return 0;
+}
+
+
+void printer(unsigned char *buffer, int len) {
+    printf("Received: ");
+    for (int i = 0; i < len; i++) {
+        printf("%d ", buffer[i]);
+    }
+    printf("\n");
+}
+
+void recv_address_claim_frames(void *arg) {
+    node_t *node = (node_t *)arg;
+    unsigned char sa = 0;
+    unsigned char *name;
+    while (1) {
+        if (node->recv_hdlr(node) != 0) {
+            printf("Failed to receive data\n");
+            break;
+        }
+
+        // Check if the received frame is an address claim frame (PGN 0x00EE00)
+        if (node->rcv_buffer[1] == 0xEE) {
+            printer(node->rcv_buffer, 12);
+            sa = node->rcv_buffer[2];
+            name = &node->rcv_buffer[5];
+        }
+
+
+    }
+    return NULL;
 }

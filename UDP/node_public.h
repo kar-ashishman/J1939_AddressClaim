@@ -14,4 +14,9 @@
         char type;
     } node_t;
 
+    typedef struct{
+        unsigned char sa;
+        unsigned char* name;
+    }addr_claim_t;
+
 #endif // NODE_PUBLIC_H
