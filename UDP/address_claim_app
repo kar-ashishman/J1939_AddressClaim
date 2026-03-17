@@ -4,7 +4,7 @@
 #include <time.h>
 #include "node_defs.h"
 #include "node_claim_public.h"
-#include "node_claim_proto.h"
+#include "node_claim.h"
 
 char *node_send_buffer[BUFFLEN];
 char *node_rcv_buffer[BUFFLEN];
