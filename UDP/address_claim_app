@@ -1,0 +1,158 @@
+#include <stdio.h>
+#include <string.h>
+#include <pthread.h>
+#include <time.h>
+#include "node_defs.h"
+#include "node_public.h"
+#include "node_proto.h"
+
+char *node_send_buffer[BUFFLEN];
+char *node_rcv_buffer[BUFFLEN];
+
+#define RESEND_ADDRESS_CLAIM 0
+#define SEND_ADDRESS_CLAIMED 1
+
+void node_send_addr(node_t *node);
+void rx_func(void *args);
+/*
+node_t node_tx = {
+    .init_hdlr = node_init,
+    .send_hdlr = node_send,
+    .recv_hdlr = node_revc,
+    .cleanup_hdlr = node_cleanup,
+    .sock = INVALID_SOCKET,
+    .rcv_buffer = node_send_buffer,
+    .send_buffer = NULL,
+    .type = SENDER
+};
+
+node_t node_rx = {
+    .init_hdlr = node_init,
+    .send_hdlr = node_send,
+    .recv_hdlr = node_revc,
+    .cleanup_hdlr = node_cleanup,
+    .sock = INVALID_SOCKET,
+    .rcv_buffer = node_rcv_buffer,
+    .send_buffer = NULL,
+    .type = RECEIVER
+};*/
+boolean conflict_check(node_t* node){
+    char* rcv_data = node->rcv_buffer;
+    if(node->name == rcv_data){
+        //No issues - Same name being received
+        return -1;
+    }
+    else if(node->name > rcv_data){
+        // NAME > NAME_RECEIVED - Resend Address claim
+        node->sa = 0x4;
+        return RESEND_ADDRESS_CLAIM;
+    }
+    else if(node->name < node->rcv_buffer){
+        // NAME < NAME_RECEIVED - Resend same address 
+        return SEND_ADDRESS_CLAIMED;
+    }
+}
+/*NODE.STAT == 1 --> Status of node - when address claim message is sent
+  NODE.STAT == 2 --> Status of node - when address is already claimed
+  NODE.STAT == 3 --> Status of node - when there is conflict and we need to resend address claim */
+void tx_func(void *args){
+    node_t *node = (node_t*)(args);
+    struct timespec ts;
+    int ret;
+    while(1){
+    //node sends an address claim message
+        node->send_hdlr(node);
+        while(node->stat == 1){
+            clock_gettime(CLOCK_REALTIME,&ts);
+            ts.tv_nsec = ts.tv_nsec + (250*1000000);
+            pthread_mutex_lock(&node->mutex_lock);
+            //thread conditional timed wait
+            ret = pthread_cond_timedwait(&(node->cond_wait),&(node->mutex_lock),&ts);
+            if(ret == ETIMEDOUT){
+            //timeout - address claimed
+            node->stat = 2;
+            //add to address table
+            //address_table_update();
+            }
+            pthread_mutex_unlock(&node->mutex_lock);  
+        }
+    pthread_mutex_lock(&node->mutex_lock);
+    //thread conditional timed wait
+    pthread_cond_wait(&(node->cond_wait),&(node->mutex_lock));
+    node->stat = 1;
+    pthread_mutex_unlock(&node->mutex_lock);
+    //sleep until some condition wakes this thread up
+    }
+}
+/************ node_send_addr(node_t *node) *******************************
+ *********** Function to build an address claim message and send**********/
+void node_send_addr(node_t *node){
+    /*1. Build an address claim message 
+      2. Send the address claim message 
+      3. Sleep 250 ms */
+    node->send_buffer = 200;
+}
+void rx_func(void *args){
+    /* 1. Receive message - Blocking call 
+       2. Check for conflicts - 
+        2.1 Received message - Has same name as the node  */
+    node_t *node = (node_t*)(args);
+    while(1){
+        node_revc(node); //blocking call
+        int result = conflict_check(node);
+        //Node status is address claiming
+        if(node->stat == 1){
+            if(result == RESEND_ADDRESS_CLAIM){
+                pthread_mutex_lock(&node->mutex_lock);
+                pthread_cond_signal(&node->cond_wait);
+                pthread_mutex_unlock(&node->mutex_lock);
+            }
+            else if(result == SEND_ADDRESS_CLAIMED){
+                //address claimed
+                node->send_hdlr(node);
+            }
+        }
+        else if(node->stat == 2){
+            if(result == RESEND_ADDRESS_CLAIM){
+                //pick_new_address();
+                pthread_mutex_lock(&node->mutex_lock);
+                pthread_cond_signal(&node->cond_wait);
+                pthread_mutex_unlock(&node->mutex_lock);
+            }
+            else if(result == SEND_ADDRESS_CLAIMED){
+                node->send_hdlr(node);
+            }
+        }
+    }    
+}
+
+node_t node = {
+    .init_hdlr = node_init,
+    .send_hdlr = node_send_addr,
+    .recv_hdlr = rx_func,
+    .cleanup_hdlr = node_cleanup,
+    .sock = INVALID_SOCKET,
+    .rcv_buffer = node_rcv_buffer,
+    .send_buffer = node_send_buffer,
+    .name = NULL,
+    .sa   = NULL,
+    .mutex_lock = PTHREAD_MUTEX_INITIALIZER,
+    .cond_wait = PTHREAD_COND_INITIALIZER,
+    .stat = 1
+};
+int main(){
+    // Initialise the sender node 
+    if (node.init_hdlr(&node) != 0) {
+        return 1;
+    }
+    pthread_t thread_rx;
+    pthread_t thread_tx;
+    /* Create a thread for sending */
+    pthread_create(&thread_tx,NULL,rx_func,&node);
+    /* Create a thread for receiving */
+    pthread_create(&thread_rx,NULL,tx_func,&node);
+    /* Why are we joining only tx here?*/
+    pthread_join(thread_tx,NULL);
+    pthread_join(thread_rx,NULL);
+    return 0;
+}
