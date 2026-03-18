@@ -7,6 +7,14 @@
     #define SENDER              0
     #define RECEIVER            1
     #define BUFFER_LENGTH       100
+    #define MAX_ATTEMPTS        5
+    #define SOURCE_ADDRESS      0x01
+    #define TIMEOUT_MSECS       250
+
+    #define NODE_STATE_UNCLAIMED        0
+    #define NODE_STATE_CLAIMING         1
+    #define NODE_STATE_CLAIMED          2
+    #define NODE_STATE_CLAIM_FAILED     3
 
 
     /*       DEFINES        */

@@ -9,4 +9,13 @@
     void node_cleanup(node_t *node);
     void recv_address_claim_frames(void *arg);
 
+
+    // Other protos
+    void address_claim(node_t* node);
+    void address_claim_parser(node_t* node);
+
+    
+
+    long long current_time_millis();
+
 #endif // NODE_PROTO_H

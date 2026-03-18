@@ -2,7 +2,8 @@
 #define NODE_PUBLIC_H
 
 
-    #include<pthread.h>
+    #include <pthread.h>
+    #include <unistd.h>
 
     // Data structure to define a node
     typedef struct node_t{
@@ -16,23 +17,23 @@
         int sock;
         
         // buffers
-        char *rcv_buffer;
-        char *send_buffer;
+        unsigned char *rcv_buffer;
+        unsigned char *send_buffer;
 
         // Every node has a 64 bit NAME
         unsigned char name[8];
         
         // Source address 1 byte long
         unsigned char sa;
-        
-        //mutex lock for the node
-        pthread_mutex_t mutex_lock;
 
-        //condition waiting
-        pthread_cond_t cond_wait;
+        // condtion wait for receiving thread
+        pthread_mutex_t lock;
+        pthread_cond_t recv_cond;
 
-        //type of node sender or receiver
-        unsigned char type;
+        // state info
+        unsigned char state;
+        long long node_start_time;
+
     } node_t;
 
 #endif // NODE_PUBLIC_H
