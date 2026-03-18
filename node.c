@@ -41,7 +41,7 @@ int node_send(node_t *node) {
 
     dest.sin_family = AF_INET;
     dest.sin_port   = htons(PORT);
-    dest.sin_addr.s_addr = inet_addr("10.97.177.225");
+    dest.sin_addr.s_addr = inet_addr(GLOBALIP);
     
     rc = sendto(node->sock, node->send_buffer, msg_len, 0, (struct sockaddr*)&dest, sizeof(dest));
     if (rc == SOCKET_ERROR_TYPE) {

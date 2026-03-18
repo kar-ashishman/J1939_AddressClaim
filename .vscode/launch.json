@@ -1,0 +1,28 @@
+{
+    "configurations": [
+        {
+          "name": "GDB",
+          "type": "cppdbg",
+          "request": "launch",
+          "program": "${workspaceFolder}/AddressClaimSimulation/App",
+          "args": [],
+          "stopAtEntry": true,
+          "cwd": "${workspaceFolder}",
+          "environment": [],
+          "externalConsole": false,
+          "MIMode": "gdb",
+          "setupCommands": [
+            {
+              "description": "Enable pretty-printing for gdb",
+              "text": "-enable-pretty-printing",
+              "ignoreFailures": true
+            },
+            {
+              "description": "Run reset command",
+              "text": "monitor system_reset",
+              "ignoreFailures": true
+            } ],
+          "miDebuggerPath": "/usr/bin/gdb",
+        }
+    ]
+  }
