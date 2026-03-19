@@ -32,7 +32,11 @@
 
         // state info
         unsigned char state;
-        long long node_start_time;
+
+        // printer thread
+        pthread_t print_thread;
+        pthread_mutex_t print_lock;
+        pthread_cond_t print_cond;
 
     } node_t;
 

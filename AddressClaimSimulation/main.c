@@ -4,8 +4,8 @@
 #include "node_proto.h"
 #include "node_defs.h"
 
-unsigned char send_buffer[BUFFER_LENGTH];
-unsigned char recv_buffer[BUFFER_LENGTH];
+unsigned char send_buffer[BUFFER_LENGTH] = {0,0,0,0,0,0,0,0,0,0,0,0,0};
+unsigned char recv_buffer[BUFFER_LENGTH] = {0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 node_t node = {
     .init_hdlr = node_init,
@@ -16,8 +16,8 @@ node_t node = {
     .send_buffer = send_buffer,
     .rcv_buffer = recv_buffer,
     .sa = SOURCE_ADDRESS,
+    .name = {0,0,2,3,4,5,6,7},
     .state = NODE_STATE_UNCLAIMED,
-    .node_start_time = 0
 };
 
 
@@ -27,12 +27,15 @@ int main() {
     // Initialize node
     node.init_hdlr(&node);
 
+    // Start a thread for sending a message
+    pthread_t send_thread;
+    pthread_create(&send_thread, NULL, (void *)address_claim, &node);
+
+    sleep(0.1);
+
     // Start a thread for receiving messages
     pthread_t recv_thread;
-    pthread_create(&recv_thread, NULL, (void *)node.recv_hdlr, &node);
-    
-    // Start a thread for sending a message
-    address_claim(&node);
+    pthread_create(&recv_thread, NULL, (void *)address_claim_parser, &node);
 
     // Wait for the receiving thread to finish
     pthread_join(recv_thread, NULL);

@@ -9,12 +9,14 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <errno.h>
+#include "address_claim_proto.h"
 
-long long current_time_millis() {
-    struct timespec ts;
-    timespec_get(&ts, TIME_UTC);
-    return (long long)(ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
-}
+void printmsg(unsigned char* buffer) {
+    for(int i = 0; i < BUFFER_LENGTH; i++) {
+        printf("%02X ", buffer[i]);
+    }
+    printf("\n");
+} /* End of printmsg */
 
 void node_cleanup(node_t *node) {
     close(node->sock);
@@ -35,6 +37,24 @@ int node_init(node_t *node) {
         return 1;
     }
 
+    // Allow multiple processes to bind to the same UDP port (broadcast listener)
+    rc = setsockopt(node->sock, SOL_SOCKET, SO_REUSEADDR, (const char*)&enable, sizeof(enable));
+    if (rc == SOCKET_ERROR_TYPE) {
+        printf("setsockopt(SO_REUSEADDR) failed: %d\n", GET_ERROR());
+        node_cleanup(node);
+        return 1;
+    }
+
+    #ifdef SO_REUSEPORT
+    // SO_REUSEPORT allows multiple sockets to bind the same port (Linux/BSD)
+    rc = setsockopt(node->sock, SOL_SOCKET, SO_REUSEPORT, (const char*)&enable, sizeof(enable));
+    if (rc == SOCKET_ERROR_TYPE) {
+        printf("setsockopt(SO_REUSEPORT) failed: %d\n", GET_ERROR());
+        node_cleanup(node);
+        return 1;
+    }
+    #endif
+
     // Broadcast option
     rc = setsockopt(node->sock, SOL_SOCKET, SO_BROADCAST, (const char*)&enable, sizeof(enable));
     if (rc == SOCKET_ERROR_TYPE) {
@@ -43,7 +63,7 @@ int node_init(node_t *node) {
         return 1;
     }
 
-    // bind
+    // bind (accept packets sent to any address on this host)
     local.sin_family = AF_INET;
     local.sin_addr.s_addr = INADDR_ANY;
     local.sin_port = htons(PORT);
@@ -67,14 +87,22 @@ int node_init(node_t *node) {
         return 1;
     }
 
-    node->node_start_time = current_time_millis();
+    // Initialize sendbuffer with name
+    node->send_buffer[0] = 0x18;
+    node->send_buffer[1] = 0xEE;
+    node->send_buffer[2] = node->sa;
+    node->send_buffer[3] = 0xFF;
+
+    memcpy(&node->send_buffer[4], node->name, 8);
 
     printf("Initialized node...\n");
+    printmsg(node->send_buffer);
+    printf("Address claim simulation...\n");
+
     return 0;
 } /* End of node_init */
 
 void node_send(node_t *node) {
-    printf("Sending message...\n");
     int msg_len = (int)strlen(node->send_buffer);
     struct sockaddr_in dest;
     int rc; 
@@ -86,8 +114,8 @@ void node_send(node_t *node) {
     rc = sendto(node->sock, node->send_buffer, msg_len, 0, (struct sockaddr*)&dest, sizeof(dest));
     if (rc == SOCKET_ERROR_TYPE) {
         printf("sendto failed: %d\n", GET_ERROR());
+        return;
     }
-
 } /* End of node_send */
 
 
@@ -95,20 +123,9 @@ void node_recv(node_t *node) {
     struct sockaddr_in from;
     int rc;
     int fromlen = sizeof(from);
-    printf("Node active...\n");
-    while(1) {
-        rc = recvfrom(node->sock, node->rcv_buffer, 
-            BUFFLEN - 1, 0, (struct sockaddr*)&from, &fromlen);
+    rc = recvfrom(node->sock, node->rcv_buffer, 
+        BUFFLEN, 0, (struct sockaddr*)&from, &fromlen);
         if (rc == SOCKET_ERROR_TYPE) {
             printf("recvfrom failed: %d\n", GET_ERROR());
-        }
-        address_claim_parser(node);
-
-        if(node->state == NODE_STATE_CLAIM_FAILED) {
-            printf("Address claim failed. No available addresses.\n");
-            break;
-        }
     }
-
-    node->cleanup_hdlr(node);
 } /* End of node_recv */

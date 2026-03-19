@@ -14,8 +14,4 @@
     void address_claim(node_t* node);
     void address_claim_parser(node_t* node);
 
-    
-
-    long long current_time_millis();
-
 #endif // NODE_PROTO_H
