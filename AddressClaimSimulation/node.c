@@ -116,6 +116,8 @@ void node_send(node_t *node) {
         printf("sendto failed: %d\n", GET_ERROR());
         return;
     }
+    printf("Sent message: ");
+    printmsg(node->send_buffer);
 } /* End of node_send */
 
 
@@ -124,8 +126,10 @@ void node_recv(node_t *node) {
     int rc;
     int fromlen = sizeof(from);
     rc = recvfrom(node->sock, node->rcv_buffer, 
-        BUFFLEN, 0, (struct sockaddr*)&from, &fromlen);
-        if (rc == SOCKET_ERROR_TYPE) {
-            printf("recvfrom failed: %d\n", GET_ERROR());
+        BUFFLEN, MSG_WAITALL, (struct sockaddr*)&from, &fromlen);
+    if (rc == SOCKET_ERROR_TYPE) {
+        printf("recvfrom failed: %d\n", GET_ERROR());
     }
+    printf("Received message: ");
+    printmsg(node->rcv_buffer);
 } /* End of node_recv */

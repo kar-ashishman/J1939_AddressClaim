@@ -70,18 +70,18 @@ void address_claim_parser(node_t* node) {
 
         // Check if name of the incoming message is same as the node's name
         if (name_comparator(&(node->rcv_buffer[4]), 
-                node->name) == 0)
+                node->name) == NAMES_ARE_SAME)
             continue; // Ignore messages from self
 
         // if incoming message is from a different SA
         if(node->rcv_buffer[2] != node->sa) {
             // code for updating address table
-        } else { 
+        } else {
             // if incoming message is from same SA
             // address conflict
             // verify name superiority
             result = name_comparator(&(node->rcv_buffer[4]), node->name);
-            if(result == NAME2_GREATER_THAN_NAME1)
+            if(result == NAME1_GREATER_THAN_NAME2)
                 node->send_hdlr(node);
             else {
                 // higher priority node has claimed the address, so this node needs to claim a new address

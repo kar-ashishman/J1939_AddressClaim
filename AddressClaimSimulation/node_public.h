@@ -33,11 +33,6 @@
         // state info
         unsigned char state;
 
-        // printer thread
-        pthread_t print_thread;
-        pthread_mutex_t print_lock;
-        pthread_cond_t print_cond;
-
     } node_t;
 
 #endif // NODE_PUBLIC_H
