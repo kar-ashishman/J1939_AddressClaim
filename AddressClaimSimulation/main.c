@@ -16,10 +16,9 @@ node_t node = {
     .send_buffer = send_buffer,
     .rcv_buffer = recv_buffer,
     .sa = SOURCE_ADDRESS,
-    .name = {0,0,3,3,4,5,6,7},
+    .name = {0,0,3,4,5,6,7,8},
     .state = NODE_STATE_UNCLAIMED,
 };
-
 
 
 int main() {

@@ -11,7 +11,7 @@
     #define SOURCE_ADDRESS          0x01
     #define SECONDARY_ADDRESS       0x50
     #define SECONDARY_ADDRESS_END   0x5F
-    #define TIMEOUT_MSECS           250
+    #define TIMEOUT_MSECS           5000
 
     #define NODE_STATE_UNCLAIMED        0
     #define NODE_STATE_CLAIMING         1

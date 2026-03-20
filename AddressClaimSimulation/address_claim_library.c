@@ -2,14 +2,22 @@
 #include <unistd.h>
 #include "node_public.h"
 #include "node_defs.h"
-#include <sys/time.h>
+#include <time.h>
 #include <errno.h>
-
+#include <pthread.h>
 
 #include "address_claim_proto.h"
 
 void address_claim(node_t* node) {
     // updating network address table
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    #if TIMEOUT_MSECS >= 1000
+        ts.tv_sec += TIMEOUT_MSECS / 1000;
+        ts.tv_nsec += (TIMEOUT_MSECS % 1000) * 1000000;
+    #else
+        ts.tv_nsec += TIMEOUT_MSECS * 1000000;
+    #endif
 
     while(1) {
         // wait for a signal from receiving thread to start claiming address
@@ -18,19 +26,19 @@ void address_claim(node_t* node) {
         // 2. When the node receives a message with same SA as its own SA,
         //    which means there is an address conflict and it needs to claim a new address
         printf("Try locking\n");
-        pthread_mutex_lock(&node->lock);
+        pthread_mutex_trylock(&node->lock);
         printf("Lock accessed\n");
         pthread_cond_wait(&node->recv_cond, &node->lock);
         printf("woke up\n");
 
         // try to claim address by sending addr claim message
         // Wait for a signal from rcving thread 
-        // Timeout of 250ms for receiving a message
+        // Timeout of 10 seconds for receiving a message
         // After timeout, claim the address
         while(node->state != NODE_STATE_CLAIMED) {
             node->send_hdlr(node);
-            int rc = pthread_cond_timedwait(&node->recv_cond, &node->lock, 
-                &(struct timespec){.tv_sec = 0, .tv_nsec = TIMEOUT_MSECS * 1000000});
+            // Calculate absolute time: current time + 10 seconds
+            int rc = pthread_cond_timedwait(&node->recv_cond, &node->lock, &ts);
             if (rc == ETIMEDOUT) {
                 // address claim successful
                 // update address table
@@ -60,12 +68,13 @@ void address_claim_parser(node_t* node) {
     int result;
 
     // signal sender thread to start claiming address
-    pthread_mutex_lock(&node->lock);
+    pthread_mutex_trylock(&node->lock);
     pthread_cond_signal(&node->recv_cond);
     pthread_mutex_unlock(&node->lock);
 
     while(1) {
         // Wait for incoming messages and parse them
+        printf("wating for a message\n");
         node->recv_hdlr(node);
 
         // Check if name of the incoming message is same as the node's name
@@ -81,12 +90,16 @@ void address_claim_parser(node_t* node) {
             // address conflict
             // verify name superiority
             result = name_comparator(&(node->rcv_buffer[4]), node->name);
-            if(result == NAME1_GREATER_THAN_NAME2)
+            if(result == NAMES_ARE_SAME) {
+                // This case should not happen as we are ignoring messages from self
+                continue;
+            } else if(result == NAME1_GREATER_THAN_NAME2)
                 node->send_hdlr(node);
             else {
                 // higher priority node has claimed the address, so this node needs to claim a new address
                 // signal sender thread to claim new address
-                pthread_mutex_lock(&node->lock);
+                pthread_mutex_trylock(&node->lock);
+                printf("Reached here\n");
                 node->state = NODE_STATE_CLAIMING;
                 pthread_cond_signal(&node->recv_cond);
                 pthread_mutex_unlock(&node->lock);

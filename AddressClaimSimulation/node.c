@@ -103,7 +103,7 @@ int node_init(node_t *node) {
 } /* End of node_init */
 
 void node_send(node_t *node) {
-    int msg_len = (int)strlen(node->send_buffer);
+    int msg_len = BUFFER_LENGTH-1;
     struct sockaddr_in dest;
     int rc; 
 
@@ -130,6 +130,6 @@ void node_recv(node_t *node) {
     if (rc == SOCKET_ERROR_TYPE) {
         printf("recvfrom failed: %d\n", GET_ERROR());
     }
-    printf("Received message: ");
+    //printf("Received message: ");
     printmsg(node->rcv_buffer);
 } /* End of node_recv */
