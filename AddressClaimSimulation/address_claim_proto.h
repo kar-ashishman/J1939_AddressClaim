@@ -5,5 +5,6 @@
     void address_claim(node_t* node);
     void address_claim_parser(node_t* node);
     int name_comparator(unsigned char* name1, unsigned char* name2);
+    void address_table_update(node_t* node);
     
 #endif // ADDRESS_CLAIM_PROTO_H

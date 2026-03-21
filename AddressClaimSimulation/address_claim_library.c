@@ -7,9 +7,13 @@
 #include <pthread.h>
 
 #include "address_claim_proto.h"
+#include "node_proto.h"
 
 void address_claim(node_t* node) {
     // updating network address table
+    //node->send_buffer[2] = 0xFE;
+    //node->send_hdlr(node);
+
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     #if TIMEOUT_MSECS >= 1000
@@ -25,11 +29,9 @@ void address_claim(node_t* node) {
         // 1. When the node is initialized and is ready to claim address
         // 2. When the node receives a message with same SA as its own SA,
         //    which means there is an address conflict and it needs to claim a new address
-        printf("Try locking\n");
-        pthread_mutex_trylock(&node->lock);
-        printf("Lock accessed\n");
-        pthread_cond_wait(&node->recv_cond, &node->lock);
-        printf("woke up\n");
+        pthread_mutex_lock(&node->lock1);
+        pthread_cond_wait(&node->recv_cond1, &node->lock1);
+        pthread_mutex_unlock(&node->lock1);
 
         // try to claim address by sending addr claim message
         // Wait for a signal from rcving thread 
@@ -37,13 +39,14 @@ void address_claim(node_t* node) {
         // After timeout, claim the address
         while(node->state != NODE_STATE_CLAIMED) {
             node->send_hdlr(node);
-            // Calculate absolute time: current time + 10 seconds
-            int rc = pthread_cond_timedwait(&node->recv_cond, &node->lock, &ts);
+            node->state = NODE_STATE_CLAIMING;
+            int rc = pthread_cond_timedwait(&node->recv_cond2, &node->lock2, &ts);
             if (rc == ETIMEDOUT) {
                 // address claim successful
                 // update address table
                 // unlock mutex and break
                 node->state = NODE_STATE_CLAIMED;
+                address_table_update(node);
                 // code for updating address table
 
                 printf("Address claim successful. SA: %d\n", node->sa);
@@ -58,6 +61,7 @@ void address_claim(node_t* node) {
                 // else claim next of last sa
                 node->sa = node->sa == SOURCE_ADDRESS ? 
                         SECONDARY_ADDRESS : node->sa+1;
+                node->send_buffer[2] = node->sa;
             }
         }
     }
@@ -68,9 +72,9 @@ void address_claim_parser(node_t* node) {
     int result;
 
     // signal sender thread to start claiming address
-    pthread_mutex_trylock(&node->lock);
-    pthread_cond_signal(&node->recv_cond);
-    pthread_mutex_unlock(&node->lock);
+    pthread_mutex_lock(&node->lock1);
+    pthread_cond_signal(&node->recv_cond1);
+    pthread_mutex_unlock(&node->lock1);
 
     while(1) {
         // Wait for incoming messages and parse them
@@ -78,38 +82,52 @@ void address_claim_parser(node_t* node) {
         node->recv_hdlr(node);
 
         // Check if name of the incoming message is same as the node's name
-        if (name_comparator(&(node->rcv_buffer[4]), 
-                node->name) == NAMES_ARE_SAME)
+        result = name_comparator(&(node->rcv_buffer[4]), 
+                node->name);
+        if (result == NAMES_ARE_SAME)
             continue; // Ignore messages from self
 
         // if incoming message is from a different SA
         if(node->rcv_buffer[2] != node->sa) {
-            // code for updating address table
+            // update address table
+            address_table_update(node);
         } else {
             // if incoming message is from same SA
             // address conflict
             // verify name superiority
-            result = name_comparator(&(node->rcv_buffer[4]), node->name);
-            if(result == NAMES_ARE_SAME) {
-                // This case should not happen as we are ignoring messages from self
-                continue;
-            } else if(result == NAME1_GREATER_THAN_NAME2)
+            if(result == NAME1_GREATER_THAN_NAME2)
                 node->send_hdlr(node);
             else {
                 // higher priority node has claimed the address, so this node needs to claim a new address
                 // signal sender thread to claim new address
-                pthread_mutex_trylock(&node->lock);
-                printf("Reached here\n");
+                printf("Doing address mod\n");
+                node->sa = node->sa == SOURCE_ADDRESS ? 
+                        SECONDARY_ADDRESS : node->sa+1;
+                node->send_buffer[2] = node->sa;
+
+                if(node->state == NODE_STATE_CLAIMED) {
+                    pthread_mutex_lock(&node->lock1);
+                    pthread_cond_signal(&node->recv_cond1);
+                    pthread_mutex_unlock(&node->lock1);
+                } else {
+                    pthread_mutex_lock(&node->lock2);
+                    pthread_cond_signal(&node->recv_cond2);
+                    pthread_mutex_unlock(&node->lock2);
+                }
                 node->state = NODE_STATE_CLAIMING;
-                pthread_cond_signal(&node->recv_cond);
-                pthread_mutex_unlock(&node->lock);
             }
         }
     }
-        
+
 } /* End of address_claim_parser */
 
-
+void address_table_update(node_t* node) {
+    for(int i=0; i<8; i++) {
+        node->table[node->rcv_buffer[2]][i] = node->rcv_buffer[i+4];
+    }
+    node->table[node->rcv_buffer[2]][8] = 1;
+    node_table_printer(node);
+} /* End of address_table_update */
 
 int name_comparator(unsigned char* name1, unsigned char* name2) {
     for (int i = 0; i < 8; i++) {

@@ -26,9 +26,14 @@
         // Source address 1 byte long
         unsigned char sa;
 
+        // Address table 
+        unsigned char table[256][9];
+
         // condtion wait for receiving thread
-        pthread_mutex_t lock;
-        pthread_cond_t recv_cond;
+        pthread_mutex_t lock1;
+        pthread_cond_t recv_cond1;
+        pthread_mutex_t lock2;
+        pthread_cond_t recv_cond2;
 
         // state info
         unsigned char state;

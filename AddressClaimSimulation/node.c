@@ -20,8 +20,10 @@ void printmsg(unsigned char* buffer) {
 
 void node_cleanup(node_t *node) {
     close(node->sock);
-    pthread_mutex_destroy(&node->lock);
-    pthread_cond_destroy(&node->recv_cond);
+    pthread_mutex_destroy(&node->lock1);
+    pthread_cond_destroy(&node->recv_cond1);
+    pthread_mutex_destroy(&node->lock2);
+    pthread_cond_destroy(&node->recv_cond2);
 } /* End of node_cleanup */
 
 int node_init(node_t *node) {
@@ -75,17 +77,10 @@ int node_init(node_t *node) {
     }
 
     // Initialize mutex and condition variable
-    if (pthread_mutex_init(&node->lock, NULL) != 0) {
-        printf("pthread_mutex_init failed\n");
-        node_cleanup(node);
-        return 1;
-    }
-    if (pthread_cond_init(&node->recv_cond, NULL) != 0) {
-        printf("pthread_cond_init failed\n");
-        pthread_mutex_destroy(&node->lock);
-        node_cleanup(node);
-        return 1;
-    }
+    pthread_mutex_init(&node->lock1, NULL);
+    pthread_mutex_init(&node->lock2, NULL);
+    pthread_cond_init(&node->recv_cond1, NULL);
+    pthread_cond_init(&node->recv_cond2, NULL);
 
     // Initialize sendbuffer with name
     node->send_buffer[0] = 0x18;
@@ -94,16 +89,14 @@ int node_init(node_t *node) {
     node->send_buffer[3] = 0xFF;
 
     memcpy(&node->send_buffer[4], node->name, 8);
-
-    printf("Initialized node...\n");
-    printmsg(node->send_buffer);
     printf("Address claim simulation...\n");
+    printf("Initialized node.........................\n");
 
     return 0;
 } /* End of node_init */
 
 void node_send(node_t *node) {
-    int msg_len = BUFFER_LENGTH-1;
+    int msg_len = BUFFER_LENGTH;
     struct sockaddr_in dest;
     int rc; 
 
@@ -124,12 +117,23 @@ void node_send(node_t *node) {
 void node_recv(node_t *node) {
     struct sockaddr_in from;
     int rc;
-    int fromlen = sizeof(from);
+    socklen_t fromlen = sizeof(from);
     rc = recvfrom(node->sock, node->rcv_buffer, 
-        BUFFLEN, MSG_WAITALL, (struct sockaddr*)&from, &fromlen);
+        BUFFER_LENGTH, 0, (struct sockaddr*)&from, &fromlen);
     if (rc == SOCKET_ERROR_TYPE) {
         printf("recvfrom failed: %d\n", GET_ERROR());
     }
-    //printf("Received message: ");
+    printf("Received message: ");
     printmsg(node->rcv_buffer);
 } /* End of node_recv */
+
+void node_table_printer(node_t *node) {
+    for(int i=0; i<256; i++) {
+        if(node->table[i][8]) { // if table entry is updated
+            printf("%d -> ", i);
+            for(int j=0; j<8; j++)
+                printf("%d ", node->table[i][j]);
+            printf("\n");
+        }
+    }
+}
