@@ -15,7 +15,7 @@ The address claim protocol works as follows:
 ### Abstracted UDP Layer
 Created a abstrcated UDP layer, whose APIs are called to send and receive datagram packets by the Address Claim Application software.
 Three core functions that make up the UDP transport layer implementation.
-1. **node_init() :** Runs once at startup , and initialises sockets and threads in requence:
+#### **node_init() :** Runs once at startup , and initialises sockets and threads in requence:
 - **`socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP)`** - Asks the kernel to allocat a UDP sockets.
 - **`setsockopt(SO_BROADCAST)`** - Initialises send to broadcast addresses by default.
 - **`setsockopt(SO_REUSEPORT)`** - Enable reuse address for the socket
@@ -24,11 +24,11 @@ After this, every UDP datagram arriving on port `5000` - including broadcast fra
 This replicates the CAN bus behaviour.
 - **`pthread_mutex_init`** and **`pthread_cond_init()`** - Initialises the mutex and conditional variables.
 They help in protecting shared states between the RX and TX thread  
-2.**node_send()** : This is a fucntin call, to transmit data. It takes whatever is already in node->send_buffer and fires it as a single UDP datagram to the subnet broadcast addresses
+#### **node_send()** : This is a fucntin call, to transmit data. It takes whatever is already in node->send_buffer and fires it as a single UDP datagram to the subnet broadcast addresses
 - **`sendto()`** is used because UDP is connectionless - There is no established connection to send "into". The destination address must be provided on every call.
 - Because destination is a broadcast address, every node on the subnet with a socket bound to port `5000` will receive this datagram - Including the sender itself.
    This is apt J1939 behavious , where a node monitors its own frame.
-4. node_recv() : The transport layer fills the node->rcv_buffer.
+#### **node_recv()** : The transport layer fills the node->rcv_buffer.
    3.1 recvfrom(node->sock, node->rcv_buffer, BUFFER_LENGTH, 0, (struct sockaddr*)&from, &fromlen) blocks the thread until the UDP datagram arrives. UDP sends discrete datagrams.
    3.2 The received bytes are stored into the `node->rcv_buffer` Each recvfrom()  on the receiver always returns exactly one datagram -
    3.3 Never overlapped / split. If the buffer is too small for the datagram, the excess bytes are discarded - They are never splilt/buffered for the next call. 
