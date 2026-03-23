@@ -16,7 +16,7 @@ The address claim protocol works as follows:
 Created a abstrcated UDP layer, whose APIs are called to send and receive datagram packets by the Address Claim Application software.
 Three core functions that make up the UDP transport layer implementation.
 #### **`node_init() :`** Runs once at startup , and initialises sockets and threads in requence
-- **`socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP)`** - Asks the kernel to allocat a UDP sockets.
+- `socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP)` - Asks the kernel to allocat a UDP sockets.
 - **`setsockopt(SO_BROADCAST)`** - Initialises send to broadcast addresses by default.
 - **`setsockopt(SO_REUSEPORT)`** - Enable reuse address for the socket
 - **`bind(INADDR_ANY,PORT 5000)`** - Registers the socket with the OS port table. `INADDR_ANY` means accept packets on any network interface.
