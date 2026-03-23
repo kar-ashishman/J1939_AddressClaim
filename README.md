@@ -23,8 +23,7 @@ Three core functions that make up the UDP transport layer implementation.
 After this, every UDP datagram arriving on port `5000` - including broadcast frames from every other node on the subnet, is routed into this sockets receive buffer.
 This replicates the CAN bus behaviour.
 - **`pthread_mutex_init`** and **`pthread_cond_init()`** - Initialises the mutex and conditional variables.
-They help in protecting shared states between the RX and TX thread
-'''
+They help in protecting shared states between the RX and TX thread  
 2.**node_send()** : This is a fucntin call, to transmit data. It takes whatever is already in node->send_buffer and fires it as a single UDP datagram to the subnet broadcast addresses
 - **`sendto()`** is used because UDP is connectionless - There is no established connection to send "into". The destination address must be provided on every call.
 - Because destination is a broadcast address, every node on the subnet with a socket bound to port `5000` will receive this datagram - Including the sender itself.
