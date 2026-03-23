@@ -66,7 +66,33 @@ Bytes 4–11: NAME      — 8-byte J1939 NAME (not yet populated in current impl
 Multiple instances of the application running in separate terminals simulates multiple nodes contending for addresses. Each node consists of a unique source address that is assigned to it. Each instance of the application does the following things on sequence ( during power up):
 ##### Node Initilisation
 The `node_t` struct is a node , holding function pointers , socket handle, receive buffer, transmit buffer, NAME, SA and state of the node.
-
+```
+typedef struct node_t{
+        //handlers
+        int(*init_hdlr)(struct node_t *node);               // Initialize handler
+        void(*send_hdlr)(struct node_t *node);               // Send handler 
+        void(*recv_hdlr)(struct node_t *node);               // Receive handler
+        void(*cleanup_hdlr)(struct node_t *node);           // Cleanup handler
+        // socket tied to the node
+        int sock;
+        // buffers
+        unsigned char *rcv_buffer;
+        unsigned char *send_buffer;
+        // Every node has a 64 bit NAME
+        unsigned char name[8];
+        // Source address 1 byte long
+        unsigned char sa;
+        // Address table 
+        unsigned char table[256][9];
+        // condtion wait for receiving thread
+        pthread_mutex_t lock1;
+        pthread_cond_t recv_cond1;
+        pthread_mutex_t lock2;
+        pthread_cond_t recv_cond2;
+        // state info
+        unsigned char state;
+    } node_t;
+```
 ###### Node states
 ```
 UNCLAIMED → CLAIMING → CLAIMED
