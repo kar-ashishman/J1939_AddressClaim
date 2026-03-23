@@ -16,22 +16,22 @@ The address claim protocol works as follows:
 Created a abstrcated UDP layer, whose APIs are called to send and receive datagram packets by the Address Claim Application software.
 Three core functions that make up the UDP transport layer implementation.
 #### **`node_init() :`** Runs once at startup , and initialises sockets and threads in requence
-- `socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP)` - Asks the kernel to allocat a UDP sockets.
-- **`setsockopt(SO_BROADCAST)`** - Initialises send to broadcast addresses by default.
-- **`setsockopt(SO_REUSEPORT)`** - Enable reuse address for the socket
-- **`bind(INADDR_ANY,PORT 5000)`** - Registers the socket with the OS port table. `INADDR_ANY` means accept packets on any network interface.
+- `socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP)` Asks the kernel to allocat a UDP sockets.
+- `setsockopt(SO_BROADCAST)` Initialises send to broadcast addresses by default.
+- `setsockopt(SO_REUSEPORT)` Enable reuse address for the socket
+- `bind(INADDR_ANY,PORT 5000)` Registers the socket with the OS port table. `INADDR_ANY` means accept packets on any network interface.
 After this, every UDP datagram arriving on port `5000` - including broadcast frames from every other node on the subnet, is routed into this sockets receive buffer.
 This replicates the CAN bus behaviour.
-- **`pthread_mutex_init`** and **`pthread_cond_init()`** - Initialises the mutex and conditional variables.
+- `pthread_mutex_init` and `pthread_cond_init()` Initialises the mutex and conditional variables.
 They help in protecting shared states between the RX and TX thread  
 #### **`node_send()`** : This is a fucntin call, to transmit data. It takes whatever is already in node->send_buffer and fires it as a single UDP datagram to the subnet broadcast addresses
-- **`sendto()`** is used because UDP is connectionless - There is no established connection to send "into". The destination address must be provided on every call.
+- `sendto()` is used because UDP is connectionless - There is no established connection to send "into". The destination address must be provided on every call.
 - Because destination is a broadcast address, every node on the subnet with a socket bound to port `5000` will receive this datagram - Including the sender itself.
-   This is apt J1939 behavious , where a node monitors its own frame.
+This is apt J1939 behavious , where a node monitors its own frame.
 #### **`node_recv()`** : The transport layer fills the node->rcv_buffer.
-   3.1 recvfrom(node->sock, node->rcv_buffer, BUFFER_LENGTH, 0, (struct sockaddr*)&from, &fromlen) blocks the thread until the UDP datagram arrives. UDP sends discrete datagrams.
-   3.2 The received bytes are stored into the `node->rcv_buffer` Each recvfrom()  on the receiver always returns exactly one datagram -
-   3.3 Never overlapped / split. If the buffer is too small for the datagram, the excess bytes are discarded - They are never splilt/buffered for the next call. 
+- recvfrom(node->sock, node->rcv_buffer, BUFFER_LENGTH, 0, (struct sockaddr*)&from, &fromlen) blocks the thread until the UDP datagram arrives. UDP sends discrete datagrams.
+- The received bytes are stored into the `node->rcv_buffer` Each recvfrom()  on the receiver always returns exactly one datagram -
+- Never overlapped / split. If the buffer is too small for the datagram, the excess bytes are discarded - They are never splilt/buffered for the next call. 
 
 ### Address Claim Application 
 
