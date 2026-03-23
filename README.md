@@ -34,6 +34,7 @@ This is apt J1939 behavious , where a node monitors its own frame.
 - Never overlapped / split. If the buffer is too small for the datagram, the excess bytes are discarded - They are never splilt/buffered for the next call. 
 
 ### Address Claim Application 
+#### How the three work together
 ```
 main()
   │
@@ -51,3 +52,21 @@ main()
                                               all nodes' recvfrom() wake up
    
 ```   
+#### Message Frame Layout (send buffer)
+
+```
+Byte 0: 0x18          — Priority field
+Byte 1: 0xEE          — PGN high byte (Address Claimed = 0xEE00)
+Byte 2: node->sa      — Source Address
+Byte 3: 0xFF          — Destination (global broadcas)
+Bytes 4–11: NAME      — 8-byte J1939 NAME (not yet populated in current impl)
+```
+#### Application 
+```
+Multiple instances of the application running in separate terminals simulates multiple nodes contending for addresses. Each node consists of a unique source address that is assigned to it. Each instance of the application does the following things on sequence ( during power up):
+
+- Node Initilisation
+- Sending thread is spawned
+- Receiving thread is spawned
+
+```
