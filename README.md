@@ -62,11 +62,18 @@ Byte 3: 0xFF          — Destination (global broadcas)
 Bytes 4–11: NAME      — 8-byte J1939 NAME (not yet populated in current impl)
 ```
 #### Application 
-```
+
 Multiple instances of the application running in separate terminals simulates multiple nodes contending for addresses. Each node consists of a unique source address that is assigned to it. Each instance of the application does the following things on sequence ( during power up):
+##### Node Initilisation
+The `node_t` struct is a node , holding function pointers , socket handle, receive buffer, transmit buffer, NAME, SA and state of the node.
 
-- Node Initilisation
-- Sending thread is spawned
-- Receiving thread is spawned
-
+###### Node states
 ```
+UNCLAIMED → CLAIMING → CLAIMED
+                ↓ 
+           CLAIM_FAILED 
+```
+##### Sending thread is spawned
+
+##### Receiving thread is spawned
+
