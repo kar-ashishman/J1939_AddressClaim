@@ -34,6 +34,20 @@ This is apt J1939 behavious , where a node monitors its own frame.
 - Never overlapped / split. If the buffer is too small for the datagram, the excess bytes are discarded - They are never splilt/buffered for the next call. 
 
 ### Address Claim Application 
-
+```
+main()
+  │
+  ├── node_init()             ← one-time: socket(), bind(), mutex, cond variable
+  │
+  ├── [recv thread] node_recv()
+  │      └── recvfrom() blocks ──→ frame arrives ──→ address_claim_parser()
+  │                                                          │
+  │                                               (protocol layer decides
+  │                                                to send a claim frame)
+  │                                                          │
+  └── [send thread] node->send_hdlr()                       ↓
+                         └── node_send() ──→ sendto() ──→ broadcast
+                                                            │
+                                              all nodes' recvfrom() wake up
    
-   
+```   
