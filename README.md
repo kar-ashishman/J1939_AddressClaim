@@ -2,7 +2,7 @@
 
 A C implementation simulating **SAE J1939 Address Claim Porotocol** over a UDP broadcast network. This is a full multi threaded address claim simulation.
 A real CAN bus broadcasts frames to all nodes simultaneously, this simulation replicates that behavious using UDP broadcast over LAN
----
+
 ## Background 
 In a network, before a node can communicate, it must claim a unique **Source Address** - 1 BYTE identifier (0x00 - 0xFD) that identifies the node on the bus.
 The address claim protocol works as follows:
