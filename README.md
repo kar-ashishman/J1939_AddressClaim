@@ -118,7 +118,7 @@ received NAME == my NAME →  Own packet (loopback) → Ignore
 - `pthreads` library (included with MinGW)
 ### Build
 ```bash
-cd UDP_1/
+cd AddressClaimSimulation/
 mingw32-make app
 ```
 ### Run (Single Node)
@@ -128,7 +128,7 @@ mingw32-make app
 # Enter address to be claimed (0-253): 1
 ```
 ### Run (Two Nodes — Conflict Simulation)
-Open two terminals in `UDP_1/`:
+Open two terminals in `AddressClaimSimulation/`:
 ```bash
 # Terminal 1
 .\app.exe
@@ -146,7 +146,3 @@ Open two terminals in `UDP_1/`:
 ```bash
 mingw32-make clean
 ```
-
-
-
-
