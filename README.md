@@ -41,7 +41,7 @@ They help in protecting shared states between the RX and TX thread
 This is apt J1939 behavious , where a node monitors its own frame.
 ##### **`node_recv()`** : The transport layer fills the node->rcv_buffer.
 - recvfrom(node->sock, node->rcv_buffer, BUFFER_LENGTH, 0, (struct sockaddr*)&from, &fromlen) blocks the thread until the UDP datagram arrives. UDP sends discrete datagrams.
-- The received bytes are stored into the `node->rcv_buffer` Each recvfrom()  on the receiver always returns exactly one datagram -
+- The received bytes are stored into the `node->rcv_buffer` Each recvfrom()  on the receiver always returns exactly one datagram.
 - Never overlapped / split. If the buffer is too small for the datagram, the excess bytes are discarded - They are never splilt/buffered for the next call. 
 ### Address Claim Application 
 ---
