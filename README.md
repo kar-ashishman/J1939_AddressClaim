@@ -42,7 +42,7 @@ This is apt J1939 behavious , where a node monitors its own frame.
 - The received bytes are stored into the `node->rcv_buffer` Each recvfrom()  on the receiver always returns exactly one datagram -
 - Never overlapped / split. If the buffer is too small for the datagram, the excess bytes are discarded - They are never splilt/buffered for the next call. 
 
-#### Address Claim Application 
+### Address Claim Application 
 Multiple instances of the application running in separate terminals simulates multiple nodes contending for addresses. Each node consists of a unique source address that is assigned to it. 
 ##### Threading Model 
 ```
