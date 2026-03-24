@@ -70,13 +70,48 @@ main()
                                                             │
                                               all nodes' recvfrom() wake up  
 ```
-##### Node States
+##### Design
+#### State Machine
 ```
-UNCLAIMED → CLAIMING → CLAIMED
-                ↓ 
-           CLAIM_FAILED 
+                    ┌─────────────┐
+    Power On ──────►│    INIT     │
+                    └──────┬──────┘
+                           │ Send Address Claim
+                           ▼
+                    ┌─────────────┐◄─────────────────┐
+                    │  CLAIMING   │                   │
+                    │  (stat=1)   │                   │
+                    └──────┬──────┘                   │
+                           │ Wait 250ms               │
+                    ┌──────┴──────┐                   │
+                    │  Conflict?  │                   │
+                    └──┬──────┬───┘                   │
+                  YES  │      │ NO                    │
+                       │      ▼                       │
+              ┌────────┴─┐  ┌─────────────┐          │
+              │ Compare  │  │   CLAIMED   │          │
+              │  NAMEs   │  │   (stat=2)  │          │
+              └──┬────┬──┘  └──────┬──────┘          │
+            WIN  │    │ LOSE       │ New conflict     │
+                 │    │            └──────────────────┘
+         Re-assert    │ Pick new SA
+         my claim     └──────────────────────────────►┘
+                        (loop back to CLAIMING)
 ```
----  
+#### Thread Interaction
+```
+TX Thread                              RX Thread
+─────────────────────────────────      ───────────────────────────────────
+send Address Claim                     recvfrom() ← BLOCKING
+lock mutex                             
+cond_timedwait(250ms) ◄────────────── packet arrives → conflict_check()
+  │                                        │
+  │  ETIMEDOUT (250ms, no conflict)         ├─ own packet   → continue (ignore)
+  └► stat=2, ADDRESS CLAIMED              │
+                                           ├─ we WIN        → re-send claim directly
+  rc=0 (woken early by RX)                 │
+  └► pick new SA, re-send ◄────────────── └─ we LOSE       → lock + cond_signal
+```
 ##### Conflict Resolution
 ```
 received NAME < my NAME  →  They WIN  →  I pick new SA, re-send claim
