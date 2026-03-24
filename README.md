@@ -12,6 +12,7 @@ The address claim protocol works as follows:
 4. A node that cannot claim any address sends a **Cannot Claim Address** message (SA = `0xFE`)
 ## Project structure 
 ### Architecture
+---
 ```
 address_claim_library.c     — Main J1939 logic (TX thread, RX thread, conflict detection)
 address_claim_proto.h       — Function prototypes for the address claim application
@@ -22,6 +23,7 @@ node_proto.h                — Function prototypes for node layer
 Makefile                    — Build system
 ```
 ### Abstracted UDP Layer
+---
 Created a abstrcated UDP layer, whose APIs are called to send and receive datagram packets by the Address Claim Application software.
 Three core functions that make up the UDP transport layer implementation.
 ##### **`node_init() :`** Runs once at startup , and initialises sockets and threads in requence
