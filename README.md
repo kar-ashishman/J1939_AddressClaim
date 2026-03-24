@@ -52,26 +52,18 @@ main()
 ├── RX Thread (rx_func)  — runs forever, blocks on recvfrom(), detects conflicts
 └── TX Thread (tx_func)  — sends Address Claim, waits 250ms, re-claims on conflict
 ```
-Both threads share a single `node_t` struct and one UDP socket. Thread synchronization uses `pthread_mutex_t` + `pthread_cond_t`.
-##### How the three work together
+Both threads share a single `node_t` struct and one UDP socket. Thread synchronization uses `pthread_mutex_t` + `pthread_cond_t`. 
+##### Address Claim Message Frame Layout
 ```
-main()
-  │
-  ├── node_init()             ← one-time: socket(), bind(), mutex, cond variable
-  │
-  ├── [recv thread] node_recv()
-  │      └── recvfrom() blocks ──→ frame arrives ──→ address_claim_parser()
-  │                                                          │
-  │                                               (protocol layer decides
-  │                                                to send a claim frame)
-  │                                                          │
-  └── [send thread] node->send_hdlr()                       ↓
-                         └── node_send() ──→ sendto() ──→ broadcast
-                                                            │
-                                              all nodes' recvfrom() wake up  
+Byte 0: 0x18          — Priority field
+Byte 1: 0xEE          — PGN high byte (Address Claimed = 0xEE00)
+Byte 2: node->sa      — Source Address
+Byte 3: 0xFF          — Destination (global broadcas)
+Bytes 4–11: NAME      — 8-byte J1939 NAME (not yet populated in current impl)
 ```
-##### Design
-#### State Machine
+#### Design
+##### State Machine
+---
 ```
                     ┌─────────────┐
     Power On ──────►│    INIT     │
@@ -79,52 +71,46 @@ main()
                            │ Send Address Claim
                            ▼
                     ┌─────────────┐◄─────────────────┐
-                    │  CLAIMING   │                   │
-                    │  (stat=1)   │                   │
-                    └──────┬──────┘                   │
-                           │ Wait 250ms               │
-                    ┌──────┴──────┐                   │
-                    │  Conflict?  │                   │
-                    └──┬──────┬───┘                   │
-                  YES  │      │ NO                    │
-                       │      ▼                       │
+                    │  CLAIMING   │                  │
+                    │  (stat=1)   │                  │
+                    └──────┬──────┘                  │
+                           │ Wait 250ms              │
+                    ┌──────┴──────┐                  │
+                    │  Conflict?  │                  │
+                    └──┬──────┬───┘                  │
+                  YES  │      │ NO                   │
+                       │      ▼                      │
               ┌────────┴─┐  ┌─────────────┐          │
               │ Compare  │  │   CLAIMED   │          │
               │  NAMEs   │  │   (stat=2)  │          │
               └──┬────┬──┘  └──────┬──────┘          │
-            WIN  │    │ LOSE       │ New conflict     │
-                 │    │            └──────────────────┘
-         Re-assert    │ Pick new SA
-         my claim     └──────────────────────────────►┘
+            WIN  │    │ LOSE       │ New conflict    │
+                 │    │            └─────────────────┘
+         Re-assert    │ Pick new SA                  |
+         my claim     └──────────────────────────────►
                         (loop back to CLAIMING)
 ```
 #### Thread Interaction
+---
 ```
 TX Thread                              RX Thread
 ─────────────────────────────────      ───────────────────────────────────
 send Address Claim                     recvfrom() ← BLOCKING
 lock mutex                             
-cond_timedwait(250ms) ◄────────────── packet arrives → conflict_check()
+cond_timedwait(250ms) ◄────────────── packet arrives       → conflict_check()
   │                                        │
-  │  ETIMEDOUT (250ms, no conflict)         ├─ own packet   → continue (ignore)
-  └► stat=2, ADDRESS CLAIMED              │
-                                           ├─ we WIN        → re-send claim directly
+  │  ETIMEDOUT (250ms, no conflict)        ├─ own packet   → continue (ignore)
+  └► stat=2, ADDRESS CLAIMED               │
+                                           ├─ we WIN       → re-send claim directly
   rc=0 (woken early by RX)                 │
-  └► pick new SA, re-send ◄────────────── └─ we LOSE       → lock + cond_signal
+  └► pick new SA, re-send ◄──────────────  └─ we LOSE      → lock + cond_signal
 ```
 ##### Conflict Resolution
+---
 ```
 received NAME < my NAME  →  They WIN  →  I pick new SA, re-send claim
 received NAME > my NAME  →  I WIN     →  Re-broadcast my claim immediately
 received NAME == my NAME →  Own packet (loopback) → Ignore
-```
-##### Message Frame Layout (send buffer)
-```
-Byte 0: 0x18          — Priority field
-Byte 1: 0xEE          — PGN high byte (Address Claimed = 0xEE00)
-Byte 2: node->sa      — Source Address
-Byte 3: 0xFF          — Destination (global broadcas)
-Bytes 4–11: NAME      — 8-byte J1939 NAME (not yet populated in current impl)
 ```
 ## Build & Run
 ### Prerequisites
