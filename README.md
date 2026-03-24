@@ -49,11 +49,29 @@ main()
   └── [send thread] node->send_hdlr()                       ↓
                          └── node_send() ──→ sendto() ──→ broadcast
                                                             │
-                                              all nodes' recvfrom() wake up
-   
-```   
+                                              all nodes' recvfrom() wake up  
+```
+#### Threading Model
+```
+main()
+├── RX Thread (rx_func)  — runs forever, blocks on recvfrom(), detects conflicts
+└── TX Thread (tx_func)  — sends Address Claim, waits 250ms, re-claims on conflict
+```
+Both threads share a single `node_t` struct and one UDP socket. Thread synchronization uses `pthread_mutex_t` + `pthread_cond_t`.
+#### Node States
+```
+UNCLAIMED → CLAIMING → CLAIMED
+                ↓ 
+           CLAIM_FAILED 
+```
+---  
+#### Conflict Resolution
+```
+received NAME < my NAME  →  They WIN  →  I pick new SA, re-send claim
+received NAME > my NAME  →  I WIN     →  Re-broadcast my claim immediately
+received NAME == my NAME →  Own packet (loopback) → Ignore
+```
 #### Message Frame Layout (send buffer)
-
 ```
 Byte 0: 0x18          — Priority field
 Byte 1: 0xEE          — PGN high byte (Address Claimed = 0xEE00)
@@ -66,13 +84,5 @@ Multiple instances of the application running in separate terminals simulates mu
 
 1. The `node_t` struct is a node , holding function pointers , socket handle, receive buffer, transmit buffer, NAME, SA and state of the node.
 
-###### Node States
-```
-UNCLAIMED → CLAIMING → CLAIMED
-                ↓ 
-           CLAIM_FAILED 
-```
-##### Sending thread is spawned
 
-##### Receiving thread is spawned
 
