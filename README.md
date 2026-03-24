@@ -113,6 +113,7 @@ received NAME > my NAME  →  I WIN     →  Re-broadcast my claim immediately
 received NAME == my NAME →  Own packet (loopback) → Ignore
 ```
 ## Build & Run
+---
 ### Prerequisites
 - MinGW with `gcc` and `mingw32-make`
 - `pthreads` library (included with MinGW)
@@ -120,12 +121,6 @@ received NAME == my NAME →  Own packet (loopback) → Ignore
 ```bash
 cd AddressClaimSimulation/
 mingw32-make app
-```
-### Run (Single Node)
-```bash
-.\app.exe
-# Enter name of node: 100
-# Enter address to be claimed (0-253): 1
 ```
 ### Run (Two Nodes — Conflict Simulation)
 Open two terminals in `AddressClaimSimulation/`:
