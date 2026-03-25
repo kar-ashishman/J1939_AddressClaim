@@ -28,12 +28,18 @@ int main() {
 
     // Start a thread for sending a message
     pthread_t send_thread;
-    pthread_create(&send_thread, NULL, (void *)address_claim, &node);
+    #if(SERVER_OR_CLIENT == TRUE)
+        pthread_create(&send_thread, NULL, (void *)address_claim_server, &node);
+    #else
+        pthread_create(&send_thread, NULL, (void *)address_claim, &node);
 
     // Start a thread for receiving messages
     pthread_t recv_thread;
-    pthread_create(&recv_thread, NULL, (void *)address_claim_parser, &node);
-
+    #if(SERVER_OR_CLIENT == TRUE)
+        pthread_create(&recv_thread, NULL, (void *)address_claim_parser_server, &node);
+    #else
+        pthread_create(&recv_thread, NULL, (void *)address_claim_parser, &node);
+    
     // Wait for threads to finish
     pthread_join(recv_thread, NULL);
     pthread_join(send_thread, NULL);
