@@ -22,6 +22,8 @@
     #define NAME2_GREATER_THAN_NAME1    2
     #define NAMES_ARE_SAME              0
 
+    #define SERVER_OR_CLIENT            0
+
 
     /*       DEFINES        */
     #define GET_ERROR() errno
