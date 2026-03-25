@@ -30,16 +30,16 @@ typedef struct sa_entry = {
     bool flag;
 }sa_entry_t;
 
-static sa_entry_t sa_table[ADDRESS_LIST_MAX_SIZE];
+struct sa_entry_t sa_table[ADDRESS_LIST_MAX_SIZE];
 
 //Initialise all the entries to 0
-void sa_entry_init(){
+void sa_entry_init(struct sa_entry_t sa_table[]){
     for(int i=0;i<ADDRESS_LIST_MAX_SIZE;i++){
         memset(&sa_table[i],0,sizeof(sa_entry_t));
     }
 }
 
-//When message is received
+//When an address claim message is received from any node
 void server_recv(node_t* node) {
     node->recv_hdlr(node);
     //Everytime you receive any address claim message, add into table
@@ -53,17 +53,21 @@ void server_recv(node_t* node) {
     
     //Say the address is already stored - but you receive a address claim msg
     if(sa_table[node->recv_buffer[2]].flag && 
-        (sa_table[node->recv_buffer[2]].sa ==  ode->recv_buffer[2]))
+        (sa_table[node->recv_buffer[2]].sa ==  node->recv_buffer[2]))
     {
         memcpy(sa_table[node->recv_buffer[2]].name,&node->recv_buffer[4],8);
     }
-
 };
 
 //Print address table 
 void addr_table_print(){
+    char dashes[] = "----------------------------";
+    printf("| ADDRESS |%*sNAME%*s|\n",6,"",6,"");
+    printf("%.*s\n",42,dashes);
     for(int i=0;i<ADDRESS_LIST_MAX_SIZE;i++){
-        
+        if(sa_table[i].flag == 1){
+            printf("| %X    |%*s%llx%*s|\n",sa_table[i].sa,8 - (count/2),"",sa_table[i].name,8 - (count/2),"");
+        }
     }
 }
 
